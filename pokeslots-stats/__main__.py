@@ -20,6 +20,13 @@ def main(argv: List[str]) -> None:
 
         print(data.groupby(["rarity"]).describe())
         print(data)
+
+        duplicates = data[data["name"].duplicated() == True]
+
+        if len(duplicates) > 0:
+            print()
+            print("There are duplicate pokemon entries, these are the 2nd+ entries for each duplicate")
+            print(duplicates)
     elif args.command == None:
         parser.print_help()
 
