@@ -1,0 +1,8 @@
+{
+    "common_probability": 0.5,
+    "uncommon_probability": 0.33,
+    "rare_probability": 0.1,
+    "very_rare_probability": 0.05,
+    "legendary_probability": 0.01,
+    "ultra_beast_probability": 0.005
+}
