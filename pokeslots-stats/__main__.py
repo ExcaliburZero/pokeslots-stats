@@ -8,6 +8,7 @@ import random
 import sys
 
 import pandas as pd
+import plotnine as plt9
 
 
 def main(argv: List[str]) -> None:
@@ -70,6 +71,9 @@ def simulate(args: argparse.Namespace) -> None:
     print(len(pokemon))
     print(slot_machine)
 
+    # Run the simulation
+    simulation_data = SimulationData([])
+
     collection = PokemonCollection([])
     for i in range(0, args.num_rolls):
         results = slot_machine.roll(pokemon)
@@ -77,7 +81,40 @@ def simulate(args: argparse.Namespace) -> None:
 
         print(results)
 
+        simulation_data.record(pokemon, collection, results)
+
+    # Output simulation results
     print(f"{collection.num_unique()} / {len(pokemon)}, ({len(collection.pokemon)})")
+
+    data = pd.DataFrame(
+        list(
+            zip(
+                range(0, len(simulation_data.num_unique_pokemon)),
+                simulation_data.num_unique_pokemon,
+            )
+        ),
+        columns=["roll_num", "num_unique_pokemon"],
+    )
+
+    plot = (
+        plt9.ggplot(data, plt9.aes("roll_num", "num_unique_pokemon"))
+        + plt9.geom_line()
+        + plt9.geom_point()
+        + plt9.geom_hline(yintercept=len(pokemon))
+        + plt9.ylim(0, len(pokemon))
+    )
+
+    print(plot)
+
+
+@dataclass
+class SimulationData:
+    num_unique_pokemon: List[int]
+
+    def record(
+        self, pokemon: "Pokemon", collection: "PokemonCollection", results: List[str]
+    ) -> None:
+        self.num_unique_pokemon.append(collection.num_unique())
 
 
 @dataclass
