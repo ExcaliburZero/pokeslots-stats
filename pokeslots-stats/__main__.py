@@ -29,6 +29,9 @@ def main(argv: List[str]) -> None:
     parser_simulate.add_argument(
         "--num_unique_pokemon_plot", default="num_unique_pokemon.png"
     )
+    parser_simulate.add_argument(
+        "--num_missing_pokemon_plot", default="num_missing_pokemon.png"
+    )
     parser_simulate.add_argument("--autorelease", action="store_true", default=False)
 
     args = parser.parse_args(argv)
@@ -108,15 +111,40 @@ def simulate(args: argparse.Namespace) -> None:
     # Output simulation results
     data = simulation_data.to_data_frame()
 
-    plot = (
+    num_unique_pokemon_plot = (
         plt9.ggplot(data, plt9.aes("roll_num", "num_unique_pokemon", color="case_id"))
         + plt9.geom_line()
         + plt9.geom_hline(yintercept=len(pokemon))
         + plt9.ylim(0, len(pokemon))
     )
 
-    plot.save(args.num_unique_pokemon_plot, dpi=300)
+    num_unique_pokemon_plot.save(args.num_unique_pokemon_plot, dpi=300)
     print("Output:", args.num_unique_pokemon_plot)
+
+    data_2 = simulation_data.to_num_missing_data_frame()
+
+    num_missing_pokemon_plot = (
+        plt9.ggplot(
+            data_2[data_2["case_id"] == 0],
+            plt9.aes("roll_num", "num_missing", fill="rarity"),
+        )
+        + plt9.geom_area()
+        + plt9.geom_hline(yintercept=len(pokemon))
+        + plt9.ylim(0, len(pokemon))
+        + plt9.scale_fill_hue(
+            labels=[
+                "Common",
+                "Uncommon",
+                "Rare",
+                "Very rare",
+                "Legendary",
+                "Ultra beast",
+            ]
+        )
+    )
+
+    num_missing_pokemon_plot.save(args.num_missing_pokemon_plot, dpi=300)
+    print("Output:", args.num_missing_pokemon_plot)
 
 
 @dataclass
@@ -130,6 +158,21 @@ class SimulationData:
         self.cases[case_id] = case
 
         return case
+
+    def to_num_missing_data_frame(self) -> pd.DataFrame:
+        sim_results_lists = [
+            (case_id, roll_num, rarity, num_missing)
+            for case_id, simulation_case in self.cases.items()
+            for roll_num, entries in enumerate(simulation_case.num_missing_by_rarity)
+            for rarity, num_missing in entries.items()
+        ]
+
+        data = pd.DataFrame(
+            sim_results_lists,
+            columns=["case_id", "roll_num", "rarity", "num_missing"],
+        )
+
+        return data
 
     def to_data_frame(self) -> pd.DataFrame:
         sim_results_lists = [
@@ -152,11 +195,13 @@ class SimulationData:
 @dataclass
 class SimulationCase:
     num_unique_pokemon: List[int] = field(default_factory=list)
+    num_missing_by_rarity: List[Dict[str, int]] = field(default_factory=list)
 
     def record(
         self, pokemon: "Pokemon", collection: "PokemonCollection", results: List[str]
     ) -> None:
         self.num_unique_pokemon.append(collection.num_unique())
+        self.num_missing_by_rarity.append(collection.num_missing_by_rarity(pokemon))
 
 
 @dataclass
@@ -280,6 +325,27 @@ class PokemonCollection:
 
     def num_unique(self) -> int:
         return len(self.pokemon)
+
+    def num_missing_by_rarity(self, pokemon: Pokemon) -> Dict[str, int]:
+        entries = [
+            ("Common", pokemon.common_pokemon),
+            ("Uncommon", pokemon.uncommon_pokemon),
+            ("Rare", pokemon.rare_pokemon),
+            ("Very rare", pokemon.very_rare_pokemon),
+            ("Legendary", pokemon.legendary_pokemon),
+            ("Ultra beast", pokemon.ultra_beast_pokemon),
+        ]
+
+        non_owned_pokemon_by_rarity: Dict[str, List[str]] = {}
+        for rarity_name, pokemon_in_rarity in entries:
+            non_owned_pokemon: List[str] = []
+            for p in pokemon_in_rarity:
+                if p not in self.pokemon:
+                    non_owned_pokemon.append(p)
+
+            non_owned_pokemon_by_rarity[rarity_name] = non_owned_pokemon
+
+        return {r: len(p) for r, p in non_owned_pokemon_by_rarity.items()}
 
     def autorelease(self) -> int:
         num_released = 0
