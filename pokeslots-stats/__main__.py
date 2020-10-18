@@ -29,6 +29,7 @@ def main(argv: List[str]) -> None:
     parser_simulate.add_argument(
         "--num_unique_pokemon_plot", default="num_unique_pokemon.png"
     )
+    parser_simulate.add_argument("--autorelease", action="store_true", default=False)
 
     args = parser.parse_args(argv)
 
@@ -81,10 +82,22 @@ def simulate(args: argparse.Namespace) -> None:
     for case_id in range(0, args.num_cases):
         case = simulation_data.new_case(case_id)
 
-        collection = PokemonCollection([])
+        # Note: representing roll credits as 2*num_rolls to avoid floating point issues when
+        # accounting for autorelease, which has two released pokemon yield one roll.
+
+        collection = PokemonCollection()
+        roll_credits_times_2 = 0
         for i in range(0, args.num_rolls):
-            results = slot_machine.roll(pokemon)
-            collection.extend(results)
+            roll_credits_times_2 += 2
+
+            while roll_credits_times_2 >= 2:
+                roll_credits_times_2 -= 2
+
+                results = slot_machine.roll(pokemon)
+                collection.extend(results)
+
+                if args.autorelease:
+                    roll_credits_times_2 += collection.autorelease()
 
             case.record(pokemon, collection, results)
 
@@ -256,13 +269,29 @@ class SlotMachine:
 
 @dataclass
 class PokemonCollection:
-    pokemon: List[str]
+    pokemon: Dict[str, int] = field(default_factory=dict)
 
     def extend(self, new_pokemon: List[str]) -> None:
-        self.pokemon.extend(new_pokemon)
+        for p in new_pokemon:
+            if p in self.pokemon:
+                self.pokemon[p] += 1
+            else:
+                self.pokemon[p] = 1
 
     def num_unique(self) -> int:
-        return len(set(self.pokemon))
+        return len(self.pokemon)
+
+    def autorelease(self) -> int:
+        num_released = 0
+        for name, num in self.pokemon.items():
+            if num > 1:
+                while num > 1:
+                    num -= 1
+                    num_released += 1
+
+                self.pokemon[name] = 1
+
+        return num_released
 
 
 if __name__ == "__main__":
