@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, IO, List
 
 import argparse
@@ -25,6 +25,7 @@ def main(argv: List[str]) -> None:
     parser_simulate.add_argument("probabilities_json")
     parser_simulate.add_argument("--rng_seed", type=int, default=42)
     parser_simulate.add_argument("--num_rolls", type=int, default=10)
+    parser_simulate.add_argument("--num_cases", type=int, default=1)
 
     args = parser.parse_args(argv)
 
@@ -72,34 +73,28 @@ def simulate(args: argparse.Namespace) -> None:
     print(slot_machine)
 
     # Run the simulation
-    simulation_data = SimulationData([])
+    simulation_data = SimulationData()
 
-    collection = PokemonCollection([])
-    for i in range(0, args.num_rolls):
-        results = slot_machine.roll(pokemon)
-        collection.extend(results)
+    for case_id in range(0, args.num_cases):
+        case = simulation_data.new_case(case_id)
 
-        print(results)
+        collection = PokemonCollection([])
+        for i in range(0, args.num_rolls):
+            results = slot_machine.roll(pokemon)
+            collection.extend(results)
 
-        simulation_data.record(pokemon, collection, results)
+            case.record(pokemon, collection, results)
+
+        print(
+            f"{collection.num_unique()} / {len(pokemon)}, ({len(collection.pokemon)})"
+        )
 
     # Output simulation results
-    print(f"{collection.num_unique()} / {len(pokemon)}, ({len(collection.pokemon)})")
-
-    data = pd.DataFrame(
-        list(
-            zip(
-                range(0, len(simulation_data.num_unique_pokemon)),
-                simulation_data.num_unique_pokemon,
-            )
-        ),
-        columns=["roll_num", "num_unique_pokemon"],
-    )
+    data = simulation_data.to_data_frame()
 
     plot = (
-        plt9.ggplot(data, plt9.aes("roll_num", "num_unique_pokemon"))
+        plt9.ggplot(data, plt9.aes("roll_num", "num_unique_pokemon", color="case_id"))
         + plt9.geom_line()
-        + plt9.geom_point()
         + plt9.geom_hline(yintercept=len(pokemon))
         + plt9.ylim(0, len(pokemon))
     )
@@ -109,7 +104,37 @@ def simulate(args: argparse.Namespace) -> None:
 
 @dataclass
 class SimulationData:
-    num_unique_pokemon: List[int]
+    cases: Dict[int, "SimulationCase"] = field(default_factory=dict)
+
+    def new_case(self, case_id: int) -> "SimulationCase":
+        assert case_id not in self.cases
+
+        case = SimulationCase()
+        self.cases[case_id] = case
+
+        return case
+
+    def to_data_frame(self) -> pd.DataFrame:
+        sim_results_lists = [
+            zip(
+                [str(case_id)] * len(simulation_case.num_unique_pokemon),
+                range(0, len(simulation_case.num_unique_pokemon)),
+                simulation_case.num_unique_pokemon,
+            )
+            for case_id, simulation_case in self.cases.items()
+        ]
+
+        data = pd.DataFrame(
+            [item for l in sim_results_lists for item in l],
+            columns=["case_id", "roll_num", "num_unique_pokemon"],
+        )
+
+        return data
+
+
+@dataclass
+class SimulationCase:
+    num_unique_pokemon: List[int] = field(default_factory=list)
 
     def record(
         self, pokemon: "Pokemon", collection: "PokemonCollection", results: List[str]
