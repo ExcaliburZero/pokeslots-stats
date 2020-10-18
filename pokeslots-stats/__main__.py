@@ -70,8 +70,14 @@ def simulate(args: argparse.Namespace) -> None:
     print(len(pokemon))
     print(slot_machine)
 
+    collection = PokemonCollection([])
     for i in range(0, args.num_rolls):
-        print(slot_machine.roll(pokemon))
+        results = slot_machine.roll(pokemon)
+        collection.extend(results)
+
+        print(results)
+
+    print(f"{collection.num_unique()} / {len(pokemon)}, ({len(collection.pokemon)})")
 
 
 @dataclass
@@ -180,6 +186,17 @@ class SlotMachine:
                 results.append(random.choice(possible_pokemon))
 
         return results
+
+
+@dataclass
+class PokemonCollection:
+    pokemon: List[str]
+
+    def extend(self, new_pokemon: List[str]) -> None:
+        self.pokemon.extend(new_pokemon)
+
+    def num_unique(self) -> int:
+        return len(set(self.pokemon))
 
 
 if __name__ == "__main__":
