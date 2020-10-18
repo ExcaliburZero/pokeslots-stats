@@ -4,6 +4,7 @@ from typing import Any, Dict, IO, List
 import argparse
 import csv
 import json
+import random
 import sys
 
 import pandas as pd
@@ -21,6 +22,8 @@ def main(argv: List[str]) -> None:
     parser_simulate = subparsers.add_parser("simulate", help="")
     parser_simulate.add_argument("pokemon_csv")
     parser_simulate.add_argument("probabilities_json")
+    parser_simulate.add_argument("--rng_seed", type=int, default=42)
+    parser_simulate.add_argument("--num_rolls", type=int, default=10)
 
     args = parser.parse_args(argv)
 
@@ -39,15 +42,19 @@ def main(argv: List[str]) -> None:
             )
             print(duplicates)
     elif args.command == "simulate":
+        random.seed(args.rng_seed)
+
         with open(args.pokemon_csv) as input_stream:
             pokemon = Pokemon.from_csv(input_stream)
 
         with open(args.probabilities_json) as input_stream:
             slot_machine = SlotMachine.from_json(json.load(input_stream))
 
-        print(pokemon)
         print(len(pokemon))
         print(slot_machine)
+
+        for i in range(0, args.num_rolls):
+            print(slot_machine.roll(pokemon))
     elif args.command == None:
         parser.print_help()
 
@@ -147,7 +154,24 @@ class SlotMachine:
         )
 
     def roll(self, pokemon: Pokemon) -> List[str]:
-        pass
+        results: List[str] = []
+
+        data = [
+            (self.common_probability, pokemon.common_pokemon),
+            (self.uncommon_probability, pokemon.uncommon_pokemon),
+            (self.rare_probability, pokemon.rare_pokemon),
+            (self.very_rare_probability, pokemon.very_rare_pokemon),
+            (self.legendary_probability, pokemon.legendary_pokemon),
+            (self.ultra_beast_probability, pokemon.ultra_beast_pokemon),
+        ]
+
+        for probability, possible_pokemon in data:
+            r = random.random()
+
+            if r <= probability:
+                results.append(random.choice(possible_pokemon))
+
+        return results
 
 
 if __name__ == "__main__":
