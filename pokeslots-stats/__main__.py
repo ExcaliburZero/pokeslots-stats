@@ -28,33 +28,9 @@ def main(argv: List[str]) -> None:
     args = parser.parse_args(argv)
 
     if args.command == "pokemon_info":
-        data = pd.read_csv(args.pokemon_csv)
-
-        print(data.groupby(["rarity"]).describe())
-        print(data)
-
-        duplicates = data[data["name"].duplicated() == True]
-
-        if len(duplicates) > 0:
-            print()
-            print(
-                "There are duplicate pokemon entries, these are the 2nd+ entries for each duplicate"
-            )
-            print(duplicates)
+        pokemon_info(args)
     elif args.command == "simulate":
-        random.seed(args.rng_seed)
-
-        with open(args.pokemon_csv) as input_stream:
-            pokemon = Pokemon.from_csv(input_stream)
-
-        with open(args.probabilities_json) as input_stream:
-            slot_machine = SlotMachine.from_json(json.load(input_stream))
-
-        print(len(pokemon))
-        print(slot_machine)
-
-        for i in range(0, args.num_rolls):
-            print(slot_machine.roll(pokemon))
+        simulate(args)
     elif args.command == None:
         parser.print_help()
 
@@ -64,6 +40,38 @@ def main(argv: List[str]) -> None:
         parser.print_help()
 
         sys.exit(1)
+
+
+def pokemon_info(args: argparse.Namespace) -> None:
+    data = pd.read_csv(args.pokemon_csv)
+
+    print(data.groupby(["rarity"]).describe())
+    print(data)
+
+    duplicates = data[data["name"].duplicated() == True]
+
+    if len(duplicates) > 0:
+        print()
+        print(
+            "There are duplicate pokemon entries, these are the 2nd+ entries for each duplicate"
+        )
+        print(duplicates)
+
+
+def simulate(args: argparse.Namespace) -> None:
+    random.seed(args.rng_seed)
+
+    with open(args.pokemon_csv) as input_stream:
+        pokemon = Pokemon.from_csv(input_stream)
+
+    with open(args.probabilities_json) as input_stream:
+        slot_machine = SlotMachine.from_json(json.load(input_stream))
+
+    print(len(pokemon))
+    print(slot_machine)
+
+    for i in range(0, args.num_rolls):
+        print(slot_machine.roll(pokemon))
 
 
 @dataclass
