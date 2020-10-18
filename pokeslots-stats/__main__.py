@@ -26,6 +26,9 @@ def main(argv: List[str]) -> None:
     parser_simulate.add_argument("--rng_seed", type=int, default=42)
     parser_simulate.add_argument("--num_rolls", type=int, default=10)
     parser_simulate.add_argument("--num_cases", type=int, default=1)
+    parser_simulate.add_argument(
+        "--num_unique_pokemon_plot", default="num_unique_pokemon.png"
+    )
 
     args = parser.parse_args(argv)
 
@@ -99,7 +102,8 @@ def simulate(args: argparse.Namespace) -> None:
         + plt9.ylim(0, len(pokemon))
     )
 
-    print(plot)
+    plot.save(args.num_unique_pokemon_plot, dpi=300)
+    print("Output:", args.num_unique_pokemon_plot)
 
 
 @dataclass
