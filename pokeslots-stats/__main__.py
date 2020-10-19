@@ -1,8 +1,9 @@
 from dataclasses import dataclass, field
-from typing import Any, Dict, IO, List
+from typing import Any, Dict, IO, List, Optional
 
 import argparse
 import csv
+import datetime
 import json
 import random
 import sys
@@ -19,6 +20,10 @@ def main(argv: List[str]) -> None:
         "pokemon_info", help="lists information on the given pokemon data csv"
     )
     parser_pokemon_info.add_argument("pokemon_csv")
+
+    parser_estimate_stats = subparsers.add_parser("estimate_stats", help="")
+    parser_estimate_stats.add_argument("logs_json", nargs="+")
+    parser_estimate_stats.add_argument("--mudae_bot_username", default="Mudamaid 23")
 
     parser_simulate = subparsers.add_parser("simulate", help="")
     parser_simulate.add_argument("pokemon_csv")
@@ -40,6 +45,8 @@ def main(argv: List[str]) -> None:
         pokemon_info(args)
     elif args.command == "simulate":
         simulate(args)
+    elif args.command == "estimate_stats":
+        estimate_stats(args)
     elif args.command == None:
         parser.print_help()
 
@@ -65,6 +72,119 @@ def pokemon_info(args: argparse.Namespace) -> None:
             "There are duplicate pokemon entries, these are the 2nd+ entries for each duplicate"
         )
         print(duplicates)
+
+
+def estimate_stats(args: argparse.Namespace) -> None:
+    # Parse the Discord log JSON files and pull out the information we want
+    all_results = []
+    for log_filepath in args.logs_json:
+        with open(log_filepath, "r") as input_stream:
+            log_dict = json.load(input_stream)
+
+        assert "messages" in log_dict
+
+        mudae_posts = [
+            msg
+            for msg in log_dict["messages"]
+            if msg["author"]["name"] == args.mudae_bot_username
+        ]
+
+        results = [
+            PokeslotResult.from_dict(msg)
+            for msg in mudae_posts
+            if msg["content"].startswith(":")
+        ]
+        all_results.extend(results)
+
+    # Sort the results by time to make the data easier to reason about and work with
+    all_results.sort(key=lambda pr: pr.timestamp)
+
+    # Calculate and print summary information
+    earliest = all_results[0].timestamp
+    latest = all_results[-1].timestamp
+
+    print(f"Time range: {earliest}  to  {latest}")
+
+    common_count = sum((1 for r in all_results if r.common_result is not None))
+    common_percent = common_count / float(len(all_results))
+    uncommon_count = sum((1 for r in all_results if r.uncommon_result is not None))
+    uncommon_percent = uncommon_count / float(len(all_results))
+    rare_count = sum((1 for r in all_results if r.rare_result is not None))
+    rare_percent = rare_count / float(len(all_results))
+    very_rare_count = sum((1 for r in all_results if r.very_rare_result is not None))
+    very_rare_percent = very_rare_count / float(len(all_results))
+    legendary_count = sum((1 for r in all_results if r.legendary_result is not None))
+    legendary_percent = legendary_count / float(len(all_results))
+    ultra_beast_count = sum(
+        (1 for r in all_results if r.ultra_beast_result is not None)
+    )
+    ultra_beast_percent = ultra_beast_count / float(len(all_results))
+
+    print(f"Common:  \t{common_percent}\t({common_count} / {len(all_results)})")
+    print(f"Uncommon:\t{uncommon_percent}\t({uncommon_count} / {len(all_results)})")
+    print(f"Rare:    \t{rare_percent}\t({rare_count} / {len(all_results)})")
+    print(f"Very rare:\t{very_rare_percent}\t({very_rare_count} / {len(all_results)})")
+    print(f"Legendary:\t{legendary_percent}\t({legendary_count} / {len(all_results)})")
+    print(
+        f"Ultra beast:\t{ultra_beast_percent}\t({ultra_beast_count} / {len(all_results)})"
+    )
+
+
+@dataclass
+class PokeslotResult:
+    timestamp: datetime.datetime
+    common_result: Optional[str]
+    uncommon_result: Optional[str]
+    rare_result: Optional[str]
+    very_rare_result: Optional[str]
+    legendary_result: Optional[str]
+    ultra_beast_result: Optional[str]
+
+    @staticmethod
+    def from_dict(data: Dict[str, Any]) -> "PokeslotResult":
+        timestamp = PokeslotResult.parse_timestamp(data["timestamp"])
+
+        content = data["content"]
+        lines = content.split("\n")
+
+        assert len(lines) in [5, 6]
+
+        common_result = PokeslotResult.parse_result_line(lines[0])
+        uncommon_result = PokeslotResult.parse_result_line(lines[1])
+        rare_result = PokeslotResult.parse_result_line(lines[2])
+        very_rare_result = PokeslotResult.parse_result_line(lines[3])
+        legendary_result = PokeslotResult.parse_result_line(lines[4])
+
+        if len(lines) == 6:
+            ultra_beast_result = PokeslotResult.parse_result_line(lines[5])
+        else:
+            ultra_beast_result = None
+
+        return PokeslotResult(
+            timestamp,
+            common_result,
+            uncommon_result,
+            rare_result,
+            very_rare_result,
+            legendary_result,
+            ultra_beast_result,
+        )
+
+    @staticmethod
+    def parse_result_line(line: str) -> Optional[str]:
+        if line.endswith("\U0001f514") or line.endswith(":wormholebell:"):
+            pokemon_name = line.split(":")[1]
+
+            return pokemon_name
+        else:
+            return None
+
+    @staticmethod
+    def parse_timestamp(timestamp_str: str) -> datetime.datetime:
+        # 2020-08-11T05:14:14.292+00:00
+        timestamp_format = "%Y-%m-%dT%H:%M:%S"
+
+        return datetime.datetime.strptime(timestamp_str[:19], timestamp_format)
 
 
 def simulate(args: argparse.Namespace) -> None:
