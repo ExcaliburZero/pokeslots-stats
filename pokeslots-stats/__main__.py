@@ -24,6 +24,9 @@ def main(argv: List[str]) -> None:
     parser_estimate_stats = subparsers.add_parser("estimate_stats", help="")
     parser_estimate_stats.add_argument("logs_json", nargs="+")
     parser_estimate_stats.add_argument("--mudae_bot_username", default="Mudamaid 23")
+    parser_estimate_stats.add_argument(
+        "--output_probabilities_json", default="estimated_probabilities.json"
+    )
 
     parser_simulate = subparsers.add_parser("simulate", help="")
     parser_simulate.add_argument("pokemon_csv")
@@ -128,6 +131,21 @@ def estimate_stats(args: argparse.Namespace) -> None:
     print(
         f"Ultra beast:\t{ultra_beast_percent}\t({ultra_beast_count} / {len(all_results)})"
     )
+
+    # Output results to a data file
+    slot_machine = SlotMachine(
+        common_percent,
+        uncommon_percent,
+        rare_percent,
+        very_rare_percent,
+        legendary_percent,
+        ultra_beast_percent,
+    )
+
+    with open(args.output_probabilities_json, "w") as output_stream:
+        slot_machine.write_json(output_stream)
+
+    print("Wrote estimated rarity probabilities to:", args.output_probabilities_json)
 
 
 @dataclass
@@ -392,6 +410,18 @@ class SlotMachine:
     very_rare_probability: float
     legendary_probability: float
     ultra_beast_probability: float
+
+    def write_json(self, output_stream: IO[str]) -> None:
+        data = {
+            "common_probability": self.common_probability,
+            "uncommon_probability": self.uncommon_probability,
+            "rare_probability": self.rare_probability,
+            "very_rare_probability": self.very_rare_probability,
+            "legendary_probability": self.legendary_probability,
+            "ultra_beast_probability": self.ultra_beast_probability,
+        }
+
+        json.dump(data, output_stream, indent=4)
 
     @staticmethod
     def from_json(data: Dict[str, Any]) -> "SlotMachine":
