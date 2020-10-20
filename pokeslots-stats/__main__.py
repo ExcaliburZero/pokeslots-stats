@@ -101,7 +101,9 @@ def estimate_stats(args: argparse.Namespace) -> None:
         results = [
             PokeslotResult.from_dict(msg)
             for msg in mudae_posts
-            if msg["content"].startswith(":") and "pokéduel" not in msg["content"]
+            if msg["content"].startswith(":")
+            and "pokéduel" not in msg["content"]
+            and "\n" in msg["content"]
         ]
         all_results.extend(results)
 
