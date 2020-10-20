@@ -332,7 +332,7 @@ def simulate(args: argparse.Namespace) -> None:
                 "Very rare",
                 "Legendary",
                 "Ultra beast",
-            ]
+            ],
         )
         + plt9.xlab("Num rolls (exculding extra rolls)")
         + plt9.ylab("Num Pokémon missing")
