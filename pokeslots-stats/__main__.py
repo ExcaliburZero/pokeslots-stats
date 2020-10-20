@@ -89,7 +89,7 @@ def estimate_stats(args: argparse.Namespace) -> None:
         mudae_posts = [
             msg
             for msg in log_dict["messages"]
-            if msg["author"]["name"] == args.mudae_bot_username
+            if args.mudae_bot_username in msg["author"]["name"]
         ]
 
         results = [
