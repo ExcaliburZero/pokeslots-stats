@@ -364,6 +364,19 @@ class SimulationData:
             columns=["case_id", "roll_num", "rarity", "num_missing"],
         )
 
+        data["rarity"] = pd.Categorical(
+            data["rarity"],
+            categories=[
+                "Common",
+                "Uncommon",
+                "Rare",
+                "Very rare",
+                "Legendary",
+                "Ultra beast",
+            ],
+            ordered=True,
+        )
+
         return data
 
     def to_data_frame(self) -> pd.DataFrame:
