@@ -324,6 +324,7 @@ def simulate(args: argparse.Namespace) -> None:
         + plt9.geom_hline(yintercept=len(pokemon))
         + plt9.ylim(0, len(pokemon))
         + plt9.scale_fill_hue(
+            name="Rarity",
             labels=[
                 "Common",
                 "Uncommon",
@@ -333,6 +334,8 @@ def simulate(args: argparse.Namespace) -> None:
                 "Ultra beast",
             ]
         )
+        + plt9.xlab("Num rolls (exculding extra rolls)")
+        + plt9.ylab("Num Pokémon missing")
     )
 
     num_missing_pokemon_plot.save(args.num_missing_pokemon_plot, dpi=300)
