@@ -22,8 +22,14 @@ def main(argv: List[str]) -> None:
     parser_pokemon_info.add_argument("pokemon_csv")
 
     parser_estimate_stats = subparsers.add_parser("estimate_stats", help="")
-    parser_estimate_stats.add_argument("logs_json", nargs="+")
-    parser_estimate_stats.add_argument("--mudae_bot_username", default="Mudamaid 23")
+    parser_estimate_stats.add_argument(
+        "logs_json", nargs="+", help="The JSON Discord log files to process."
+    )
+    parser_estimate_stats.add_argument(
+        "--mudae_bot_username",
+        default="Muda",
+        help="The username of the the Mudae bot to process the posts of. (contains match)",
+    )
     parser_estimate_stats.add_argument(
         "--output_probabilities_json", default="estimated_probabilities.json"
     )
