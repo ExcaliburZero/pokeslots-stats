@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Dict, IO, List, Optional
+from typing import Any, Callable, cast, Dict, IO, List, Optional, Tuple
 
 import argparse
 import csv
@@ -132,6 +132,44 @@ def estimate_stats(args: argparse.Namespace) -> None:
         f"Ultra beast:\t{ultra_beast_percent}\t({ultra_beast_count} / {len(all_results)})"
     )
 
+    common_shiny_count, common_shiny_percent = calc_shiny_count_and_rate(
+        all_results, lambda r: r.common_result
+    )
+    uncommon_shiny_count, uncommon_shiny_percent = calc_shiny_count_and_rate(
+        all_results, lambda r: r.uncommon_result
+    )
+    rare_shiny_count, rare_shiny_percent = calc_shiny_count_and_rate(
+        all_results, lambda r: r.rare_result
+    )
+    very_rare_shiny_count, very_rare_shiny_percent = calc_shiny_count_and_rate(
+        all_results, lambda r: r.very_rare_result
+    )
+    legendary_shiny_count, legendary_shiny_percent = calc_shiny_count_and_rate(
+        all_results, lambda r: r.legendary_result
+    )
+    ultra_beast_shiny_count, ultra_beast_shiny_percent = calc_shiny_count_and_rate(
+        all_results, lambda r: r.ultra_beast_result
+    )
+
+    print("\nShiny rates")
+
+    print(
+        f"Common:   \t{common_shiny_percent}\t({common_shiny_count} / {common_count})"
+    )
+    print(
+        f"Uncommon: \t{uncommon_shiny_percent}\t({uncommon_shiny_count} / {uncommon_count})"
+    )
+    print(f"Rare:     \t{rare_shiny_percent}\t({rare_shiny_count} / {rare_count})")
+    print(
+        f"Very rare:\t{very_rare_shiny_percent}\t({very_rare_shiny_count} / {very_rare_count})"
+    )
+    print(
+        f"Legendary:\t{legendary_shiny_percent}\t({legendary_shiny_count} / {legendary_count})"
+    )
+    print(
+        f"Ultra beast:\t{ultra_beast_shiny_percent}\t({ultra_beast_shiny_count} / {ultra_beast_count})"
+    )
+
     # Output results to a data file
     slot_machine = SlotMachine(
         common_percent,
@@ -146,6 +184,18 @@ def estimate_stats(args: argparse.Namespace) -> None:
         slot_machine.write_json(output_stream)
 
     print("Wrote estimated rarity probabilities to:", args.output_probabilities_json)
+
+
+def calc_shiny_count_and_rate(
+    results: List["PokeslotResult"], get: Callable[["PokeslotResult"], Optional[str]]
+) -> Tuple[int, float]:
+    count = sum((1 for r in results if get(r) is not None))
+    shiny_count = sum(
+        (1 for r in results if get(r) is not None and "S" in cast(str, get(r)))
+    )
+    shiny_percent = shiny_count / float(count)
+
+    return shiny_count, shiny_percent
 
 
 @dataclass
@@ -190,7 +240,11 @@ class PokeslotResult:
 
     @staticmethod
     def parse_result_line(line: str) -> Optional[str]:
-        if line.endswith("\U0001f514") or line.endswith(":wormholebell:"):
+        if (
+            line.endswith("\U0001f514")
+            or line.endswith(":wormholebell:")
+            or line.endswith(":shinySparkles:")
+        ):
             pokemon_name = line.split(":")[1]
 
             return pokemon_name
