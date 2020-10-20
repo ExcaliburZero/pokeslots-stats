@@ -77,3 +77,8 @@ conda create -f pokeslots-stats.yml
 ```bash
 conda env update -f pokeslots-stats.yml
 ```
+
+### Testing
+```bash
+make test
+```
