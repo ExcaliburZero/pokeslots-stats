@@ -193,7 +193,7 @@ def calc_shiny_count_and_rate(
     shiny_count = sum(
         (1 for r in results if get(r) is not None and "S" in cast(str, get(r)))
     )
-    shiny_percent = shiny_count / float(count)
+    shiny_percent = shiny_count / float(count) if count > 0 else 0.0
 
     return shiny_count, shiny_percent
 
