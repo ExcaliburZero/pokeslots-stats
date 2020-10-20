@@ -1,4 +1,4 @@
-## Pokeslots Stats
+## Pokeslots Stats ![pokeslots-stats](https://github.com/ExcaliburZero/pokeslots-stats/workflows/pokeslots-stats/badge.svg)
 This is a script that calculates some statistical information about the [Pokeslots](https://mudae.fandom.com/wiki/Pokéslot) feature of the Discord bot Mudae.
 
 ## Usage
