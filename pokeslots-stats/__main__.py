@@ -21,7 +21,9 @@ def main(argv: List[str]) -> None:
     parser_pokemon_info = subparsers.add_parser(
         "pokemon_info", help="lists information on the given pokemon data csv"
     )
-    parser_pokemon_info.add_argument("pokemon_csv")
+    parser_pokemon_info.add_argument(
+        "pokemon_csv", help="filepath to csv listing pokemon and their rarity"
+    )
 
     parser_estimate_stats = subparsers.add_parser("estimate_stats", help="")
     parser_estimate_stats.add_argument(
@@ -30,21 +32,35 @@ def main(argv: List[str]) -> None:
     parser_estimate_stats.add_argument(
         "--mudae_bot_username",
         default="Muda",
-        help="The username of the the Mudae bot to process the posts of. (contains match)",
+        help="the username of the the Mudae bot to process the posts of. (contains match)",
     )
     parser_estimate_stats.add_argument(
-        "--output_probabilities_json", default="estimated_probabilities.json"
-    )
-    parser_estimate_stats.add_argument("--output_results_csv", default=None)
-    parser_estimate_stats.add_argument(
-        "--start_datetime", default=None, type=datetime_obj
+        "--output_probabilities_json",
+        default="estimated_probabilities.json",
+        help="filepath to write the estimated slot row probabilities to",
     )
     parser_estimate_stats.add_argument(
-        "--end_datetime", default=None, type=datetime_obj
+        "--output_results_csv",
+        default=None,
+        help="if set, outputs a csv of the pokeslot roll results to the given filepath",
+    )
+    parser_estimate_stats.add_argument(
+        "--start_datetime",
+        default=None,
+        type=datetime_obj,
+        help="if set, filters the roll results to those after this datetime (ex. 2020-10-01T00:00:00)",
+    )
+    parser_estimate_stats.add_argument(
+        "--end_datetime",
+        default=None,
+        type=datetime_obj,
+        help="if set, filters the roll results to those before this datetime (ex. 2020-10-01T08:30:00)",
     )
 
     parser_simulate = subparsers.add_parser("simulate", help="")
-    parser_simulate.add_argument("pokemon_csv")
+    parser_simulate.add_argument(
+        "pokemon_csv", help="filepath to csv listing pokemon and their rarity"
+    )
     parser_simulate.add_argument("probabilities_json")
     parser_simulate.add_argument("--rng_seed", type=int, default=42)
     parser_simulate.add_argument("--num_rolls", type=int, default=10)
