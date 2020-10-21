@@ -54,6 +54,10 @@ Output: num_missing_pokemon.png
 ```
 
 ### estimate_stats
+Calculates some statistics on Pokeslots results in a given set of Discord channel logs. You can get channel logs in the necessary JSON format by using [Tyrrrz/DiscordChatExporter](https://github.com/Tyrrrz/DiscordChatExporter).
+
+Also outputs estimates of the different slot machine roll win probabilities and outputs them to a JSON file that can be passed to `simulate`.
+
 ```
 $ python pokeslots-stats/__main__.py estimate_stats "server - channel*.json"
 Time range: 2020-08-11 05:14:22  to  2020-10-19 06:35:34
