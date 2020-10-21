@@ -11,6 +11,8 @@ import sys
 import pandas as pd
 import plotnine as plt9
 
+DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S"
+
 
 def main(argv: List[str]) -> None:
     parser = argparse.ArgumentParser()
@@ -33,6 +35,7 @@ def main(argv: List[str]) -> None:
     parser_estimate_stats.add_argument(
         "--output_probabilities_json", default="estimated_probabilities.json"
     )
+    parser_estimate_stats.add_argument("--output_results_csv", default=None)
     parser_estimate_stats.add_argument(
         "--start_datetime", default=None, type=datetime_obj
     )
@@ -75,7 +78,7 @@ def main(argv: List[str]) -> None:
 
 def datetime_obj(datetime_str: str) -> datetime.datetime:
     try:
-        return datetime.datetime.strptime(datetime_str, "%Y-%m-%dT%H:%M:%S")
+        return datetime.datetime.strptime(datetime_str, DATETIME_FORMAT)
     except ValueError as e:
         raise argparse.ArgumentTypeError(e)
 
@@ -129,6 +132,13 @@ def estimate_stats(args: argparse.Namespace) -> None:
         for r in all_results
         if within_optional_range(r.timestamp, args.start_datetime, args.end_datetime)
     ]
+
+    # Output results if requested
+    if args.output_results_csv is not None:
+        with open(args.output_results_csv, "w") as output_stream:
+            PokeslotResult.multiple_write_csv(all_results, output_stream)
+
+        print("Wrote results csv to:", args.output_results_csv)
 
     # Calculate and print summary information
     earliest = all_results[0].timestamp
@@ -246,6 +256,37 @@ class PokeslotResult:
     very_rare_result: Optional[str]
     legendary_result: Optional[str]
     ultra_beast_result: Optional[str]
+
+    @staticmethod
+    def multiple_write_csv(
+        all_results: List["PokeslotResult"], output_stream: IO[str]
+    ) -> None:
+        columns = [
+            "timestamp",
+            "common",
+            "uncommon",
+            "rare",
+            "very_rare",
+            "legendary",
+            "ultra_beast",
+        ]
+
+        writer = csv.DictWriter(output_stream, columns)
+        writer.writeheader()
+        writer.writerows(
+            [
+                {
+                    "timestamp": result.timestamp.strftime(DATETIME_FORMAT),
+                    "common": result.common_result,
+                    "uncommon": result.uncommon_result,
+                    "rare": result.rare_result,
+                    "very_rare": result.very_rare_result,
+                    "legendary": result.legendary_result,
+                    "ultra_beast": result.ultra_beast_result,
+                }
+                for result in all_results
+            ]
+        )
 
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> "PokeslotResult":
