@@ -33,6 +33,12 @@ def main(argv: List[str]) -> None:
     parser_estimate_stats.add_argument(
         "--output_probabilities_json", default="estimated_probabilities.json"
     )
+    parser_estimate_stats.add_argument(
+        "--start_datetime", default=None, type=datetime_obj
+    )
+    parser_estimate_stats.add_argument(
+        "--end_datetime", default=None, type=datetime_obj
+    )
 
     parser_simulate = subparsers.add_parser("simulate", help="")
     parser_simulate.add_argument("pokemon_csv")
@@ -65,6 +71,13 @@ def main(argv: List[str]) -> None:
         parser.print_help()
 
         sys.exit(1)
+
+
+def datetime_obj(datetime_str: str) -> datetime.datetime:
+    try:
+        return datetime.datetime.strptime(datetime_str, "%Y-%m-%dT%H:%M:%S")
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(e)
 
 
 def pokemon_info(args: argparse.Namespace) -> None:
@@ -109,6 +122,13 @@ def estimate_stats(args: argparse.Namespace) -> None:
 
     # Sort the results by time to make the data easier to reason about and work with
     all_results.sort(key=lambda pr: pr.timestamp)
+
+    # Filter down to the time period we are interested in
+    all_results = [
+        r
+        for r in all_results
+        if within_optional_range(r.timestamp, args.start_datetime, args.end_datetime)
+    ]
 
     # Calculate and print summary information
     earliest = all_results[0].timestamp
@@ -192,6 +212,17 @@ def estimate_stats(args: argparse.Namespace) -> None:
         slot_machine.write_json(output_stream)
 
     print("Wrote estimated rarity probabilities to:", args.output_probabilities_json)
+
+
+def within_optional_range(
+    value: datetime.datetime,
+    lower_bound: Optional[datetime.datetime],
+    upper_bound: Optional[datetime.datetime],
+) -> bool:
+    satisfies_lower = lower_bound is None or value >= lower_bound
+    satisfies_upper = upper_bound is None or value < upper_bound
+
+    return satisfies_lower and satisfies_upper
 
 
 def calc_shiny_count_and_rate(
