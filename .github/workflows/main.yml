@@ -23,3 +23,7 @@ jobs:
     - name: Run tests
       run: |
         make test
+    - name: Run smoke tests
+      run: |
+        python pokeslots-stats/__main__.py pokemon_info data/pokemon.csv
+        python pokeslots-stats/__main__.py simulate data/pokemon.csv data/dummy_probabilities.json --num_rolls 100 --num_cases 10 --autorelease
