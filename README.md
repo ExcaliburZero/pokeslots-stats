@@ -3,6 +3,8 @@ This is a script that calculates some statistical information about the [Pokeslo
 
 ## Usage
 ### pokemon_info
+Shows some summary information on the given pokemon rarity list csv. Used to test and inspect a pokemon csv to make sure it seems correct before using it with `simulate`.
+
 ```
 $ python pokeslots-stats/__main__.py pokemon_info data/pokemon.csv
              name                       
