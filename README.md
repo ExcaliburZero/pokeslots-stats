@@ -88,3 +88,10 @@ conda env update -f pokeslots-stats.yml
 ```bash
 make test
 ```
+
+## Implementation notes
+### Statistical assumptions
+#### Within-rarity pokemon probabilities
+The `simulate` command currently assumes that for a given pokemon rarity level (ex. common, uncommon, etc.) all pokemon in that rarity level are equally likely to be won. This assumption simplifies some of the code and statistical calculations.
+
+I did an analysis on some data from the Mudae Discord channel pokeroulette channel and it looks like this assumption does not fully hold, there were some cases of some pokemon within the same rarity that were won a bit more frequently than others (ex. Caterpie in common). However, I think that the probabilities do not vary enough to effect the end results of the simulation much.
