@@ -162,18 +162,26 @@ def estimate_stats(args: argparse.Namespace) -> None:
 
     print(f"Time range: {earliest}  to  {latest}")
 
-    common_count = sum((1 for r in all_results if r.common_result is not None))
+    common_count = sum(
+        (1 for r in all_results if r.common_result.won_pokemon is not None)
+    )
     common_percent = common_count / float(len(all_results))
-    uncommon_count = sum((1 for r in all_results if r.uncommon_result is not None))
+    uncommon_count = sum(
+        (1 for r in all_results if r.uncommon_result.won_pokemon is not None)
+    )
     uncommon_percent = uncommon_count / float(len(all_results))
-    rare_count = sum((1 for r in all_results if r.rare_result is not None))
+    rare_count = sum((1 for r in all_results if r.rare_result.won_pokemon is not None))
     rare_percent = rare_count / float(len(all_results))
-    very_rare_count = sum((1 for r in all_results if r.very_rare_result is not None))
+    very_rare_count = sum(
+        (1 for r in all_results if r.very_rare_result.won_pokemon is not None)
+    )
     very_rare_percent = very_rare_count / float(len(all_results))
-    legendary_count = sum((1 for r in all_results if r.legendary_result is not None))
+    legendary_count = sum(
+        (1 for r in all_results if r.legendary_result.won_pokemon is not None)
+    )
     legendary_percent = legendary_count / float(len(all_results))
     ultra_beast_count = sum(
-        (1 for r in all_results if r.ultra_beast_result is not None)
+        (1 for r in all_results if r.ultra_beast_result.won_pokemon is not None)
     )
     ultra_beast_percent = ultra_beast_count / float(len(all_results))
 
@@ -187,22 +195,22 @@ def estimate_stats(args: argparse.Namespace) -> None:
     )
 
     common_shiny_count, common_shiny_percent = calc_shiny_count_and_rate(
-        all_results, lambda r: r.common_result
+        all_results, lambda r: r.common_result.won_pokemon
     )
     uncommon_shiny_count, uncommon_shiny_percent = calc_shiny_count_and_rate(
-        all_results, lambda r: r.uncommon_result
+        all_results, lambda r: r.uncommon_result.won_pokemon
     )
     rare_shiny_count, rare_shiny_percent = calc_shiny_count_and_rate(
-        all_results, lambda r: r.rare_result
+        all_results, lambda r: r.rare_result.won_pokemon
     )
     very_rare_shiny_count, very_rare_shiny_percent = calc_shiny_count_and_rate(
-        all_results, lambda r: r.very_rare_result
+        all_results, lambda r: r.very_rare_result.won_pokemon
     )
     legendary_shiny_count, legendary_shiny_percent = calc_shiny_count_and_rate(
-        all_results, lambda r: r.legendary_result
+        all_results, lambda r: r.legendary_result.won_pokemon
     )
     ultra_beast_shiny_count, ultra_beast_shiny_percent = calc_shiny_count_and_rate(
-        all_results, lambda r: r.ultra_beast_result
+        all_results, lambda r: r.ultra_beast_result.won_pokemon
     )
 
     print("\nShiny rates")
@@ -222,6 +230,52 @@ def estimate_stats(args: argparse.Namespace) -> None:
     )
     print(
         f"Ultra beast:\t{ultra_beast_shiny_percent}\t({ultra_beast_shiny_count} / {ultra_beast_count})"
+    )
+
+    giovanni_common_count = sum(
+        (1 for r in all_results if r.common_result.stolen_by_giovanni == True)
+    )
+    giovanni_common_percent = giovanni_common_count / float(len(all_results))
+    giovanni_uncommon_count = sum(
+        (1 for r in all_results if r.uncommon_result.stolen_by_giovanni)
+    )
+    giovanni_uncommon_percent = giovanni_uncommon_count / float(len(all_results))
+    giovanni_rare_count = sum(
+        (1 for r in all_results if r.rare_result.stolen_by_giovanni)
+    )
+    giovanni_rare_percent = giovanni_rare_count / float(len(all_results))
+    giovanni_very_rare_count = sum(
+        (1 for r in all_results if r.very_rare_result.stolen_by_giovanni)
+    )
+    giovanni_very_rare_percent = giovanni_very_rare_count / float(len(all_results))
+    giovanni_legendary_count = sum(
+        (1 for r in all_results if r.legendary_result.stolen_by_giovanni)
+    )
+    giovanni_legendary_percent = giovanni_legendary_count / float(len(all_results))
+    giovanni_ultra_beast_count = sum(
+        (1 for r in all_results if r.ultra_beast_result.stolen_by_giovanni)
+    )
+    giovanni_ultra_beast_percent = giovanni_ultra_beast_count / float(len(all_results))
+
+    print("")
+    print("Stolen by Giovanni:")
+    print(
+        f"Common:  \t{giovanni_common_percent}\t({giovanni_common_count} / {len(all_results)})"
+    )
+    print(
+        f"Uncommon:\t{giovanni_uncommon_percent}\t({giovanni_uncommon_count} / {len(all_results)})"
+    )
+    print(
+        f"Rare:    \t{giovanni_rare_percent}\t({giovanni_rare_count} / {len(all_results)})"
+    )
+    print(
+        f"Very rare:\t{giovanni_very_rare_percent}\t({giovanni_very_rare_count} / {len(all_results)})"
+    )
+    print(
+        f"Legendary:\t{giovanni_legendary_percent}\t({giovanni_legendary_count} / {len(all_results)})"
+    )
+    print(
+        f"Ultra beast:\t{giovanni_ultra_beast_percent}\t({giovanni_ultra_beast_count} / {len(all_results)})"
     )
 
     # Output results to a data file
@@ -264,14 +318,20 @@ def calc_shiny_count_and_rate(
 
 
 @dataclass
+class PokemonResult:
+    won_pokemon: Optional[str]
+    stolen_by_giovanni: bool
+
+
+@dataclass
 class PokeslotResult:
     timestamp: datetime.datetime
-    common_result: Optional[str]
-    uncommon_result: Optional[str]
-    rare_result: Optional[str]
-    very_rare_result: Optional[str]
-    legendary_result: Optional[str]
-    ultra_beast_result: Optional[str]
+    common_result: PokemonResult
+    uncommon_result: PokemonResult
+    rare_result: PokemonResult
+    very_rare_result: PokemonResult
+    legendary_result: PokemonResult
+    ultra_beast_result: PokemonResult
 
     @staticmethod
     def multiple_write_csv(
@@ -322,7 +382,7 @@ class PokeslotResult:
         if len(lines) == 6:
             ultra_beast_result = PokeslotResult.parse_result_line(lines[5])
         else:
-            ultra_beast_result = None
+            ultra_beast_result = PokemonResult(None, False)
 
         return PokeslotResult(
             timestamp,
@@ -335,7 +395,7 @@ class PokeslotResult:
         )
 
     @staticmethod
-    def parse_result_line(line: str) -> Optional[str]:
+    def parse_result_line(line: str) -> PokemonResult:
         if (
             line.endswith("\U0001f514")
             or line.endswith(":wormholebell:")
@@ -343,9 +403,11 @@ class PokeslotResult:
         ):
             pokemon_name = line.split(":")[1]
 
-            return pokemon_name
+            return PokemonResult(pokemon_name, False)
+        elif line.startswith(":Giovanni:"):
+            return PokemonResult(None, True)
         else:
-            return None
+            return PokemonResult(None, False)
 
     @staticmethod
     def parse_timestamp(timestamp_str: str) -> datetime.datetime:
