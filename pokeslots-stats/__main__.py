@@ -1,10 +1,12 @@
 from dataclasses import dataclass, field
-from typing import Any, Callable, cast, Dict, IO, List, Optional, Tuple
+from typing import Any, Callable, cast, Dict, IO, Iterator, List, Optional, Tuple
 
 import argparse
 import csv
 import datetime
+import functools
 import json
+import operator
 import random
 import sys
 
@@ -70,6 +72,12 @@ def main(argv: List[str]) -> None:
     )
     parser_simulate.add_argument(
         "--num_missing_pokemon_plot", default="num_missing_pokemon.png"
+    )
+    parser_simulate.add_argument(
+        "--chance_new_pokemon_by_rarity_plot", default="chance_new_pokemon_by_rarity.png"
+    )
+    parser_simulate.add_argument(
+        "--chance_any_new_pokemon_plot", default="chance_any_new_pokemon.png"
     )
     parser_simulate.add_argument("--autorelease", action="store_true", default=False)
 
@@ -452,7 +460,7 @@ def simulate(args: argparse.Namespace) -> None:
                 if args.autorelease:
                     roll_credits_times_2 += collection.autorelease()
 
-            case.record(pokemon, collection, results)
+            case.record(pokemon, collection, results, slot_machine)
 
         print(
             f"{collection.num_unique()} / {len(pokemon)}, ({len(collection.pokemon)})"
@@ -498,6 +506,41 @@ def simulate(args: argparse.Namespace) -> None:
 
     num_missing_pokemon_plot.save(args.num_missing_pokemon_plot, dpi=300)
     print("Output:", args.num_missing_pokemon_plot)
+
+    data_3 = simulation_data.to_data_frame_chance_new()
+
+    chance_new_pokemon_plot = (
+        plt9.ggplot(data_3, plt9.aes("roll_num", "chance_new_in_rarity", color="rarity"))
+        + plt9.geom_line(size=1)
+        + plt9.ylim(0, 1.0)
+        + plt9.scale_color_hue(
+            name="Rarity",
+            labels=[
+                "Common",
+                "Uncommon",
+                "Rare",
+                "Very rare",
+                "Legendary",
+                "Ultra beast",
+            ],
+        )
+    )
+
+    chance_new_pokemon_plot.save(args.chance_new_pokemon_by_rarity_plot, dpi=300)
+    print("Output:", args.chance_new_pokemon_by_rarity_plot)
+
+    data_4 = simulation_data.to_data_frame_chance_any_new()
+    chance_any_new_pokemon_plot = (
+        plt9.ggplot(data_4, plt9.aes("roll_num", "chance_any_new"))
+        + plt9.geom_line()
+        + plt9.ylim(0, 1.0)
+    )
+
+    chance_any_new_pokemon_plot.save(args.chance_any_new_pokemon_plot, dpi=300)
+    print("Output:", args.chance_any_new_pokemon_plot)
+
+def product(xs: Iterator[float]) -> float:
+    return functools.reduce(operator.mul, xs, 1)
 
 
 @dataclass
@@ -557,17 +600,64 @@ class SimulationData:
 
         return data
 
+    def to_data_frame_chance_new(self) -> pd.DataFrame:
+        sim_results_lists = [
+            (case_id, roll_num, rarity, chance_new_in_rarity)
+            for case_id, simulation_case in self.cases.items()
+            for roll_num, entries in enumerate(simulation_case.chance_get_new_pokemon_by_rarity)
+            for rarity, chance_new_in_rarity in entries.items()
+        ]
+
+        data = pd.DataFrame(
+            sim_results_lists,
+            columns=["case_id", "roll_num", "rarity", "chance_new_in_rarity"],
+        )
+
+        data["rarity"] = pd.Categorical(
+            data["rarity"],
+            categories=[
+                "Common",
+                "Uncommon",
+                "Rare",
+                "Very rare",
+                "Legendary",
+                "Ultra beast",
+            ],
+            ordered=True,
+        )
+
+        return data
+
+    def to_data_frame_chance_any_new(self) -> pd.DataFrame:
+        sim_results_lists = [
+            (case_id, roll_num, 1.0 - product((
+                1.0 - chance_new_in_rarity
+                for chance_new_in_rarity in entries.values()
+            )))
+            for case_id, simulation_case in self.cases.items()
+            for roll_num, entries in enumerate(simulation_case.chance_get_new_pokemon_by_rarity)
+        ]
+
+        data = pd.DataFrame(
+            sim_results_lists,
+            columns=["case_id", "roll_num", "chance_any_new"],
+        )
+
+        return data
+
 
 @dataclass
 class SimulationCase:
     num_unique_pokemon: List[int] = field(default_factory=list)
     num_missing_by_rarity: List[Dict[str, int]] = field(default_factory=list)
+    chance_get_new_pokemon_by_rarity: List[Dict[str, float]] = field(default_factory=list)
 
     def record(
-        self, pokemon: "Pokemon", collection: "PokemonCollection", results: List[str]
+        self, pokemon: "Pokemon", collection: "PokemonCollection", results: List[str], slot_machine: "SlotMachine"
     ) -> None:
         self.num_unique_pokemon.append(collection.num_unique())
         self.num_missing_by_rarity.append(collection.num_missing_by_rarity(pokemon))
+        self.chance_get_new_pokemon_by_rarity.append(collection.chance_get_new_pokemon_by_rarity(pokemon, slot_machine))
 
 
 @dataclass
@@ -724,6 +814,30 @@ class PokemonCollection:
             non_owned_pokemon_by_rarity[rarity_name] = non_owned_pokemon
 
         return {r: len(p) for r, p in non_owned_pokemon_by_rarity.items()}
+
+    def chance_get_new_pokemon_by_rarity(self, pokemon: Pokemon, slot_machine: "SlotMachine") -> Dict[str, float]:
+        entries = [
+            ("Common", pokemon.common_pokemon, slot_machine.common_probability),
+            ("Uncommon", pokemon.uncommon_pokemon, slot_machine.uncommon_probability),
+            ("Rare", pokemon.rare_pokemon, slot_machine.rare_probability),
+            ("Very rare", pokemon.very_rare_pokemon, slot_machine.very_rare_probability),
+            ("Legendary", pokemon.legendary_pokemon, slot_machine.legendary_probability),
+            ("Ultra beast", pokemon.ultra_beast_pokemon, slot_machine.ultra_beast_probability),
+        ]
+
+        chance_new_pokemon_by_rarity: Dict[str, float] = {}
+        for rarity_name, pokemon_in_rarity, slot_row_probability in entries:
+            non_owned_pokemon: List[str] = []
+            for p in pokemon_in_rarity:
+                if p not in self.pokemon:
+                    non_owned_pokemon.append(p)
+
+
+            chance_of_new_pokemon_in_rarity = len(non_owned_pokemon) / len(pokemon_in_rarity)
+
+            chance_new_pokemon_by_rarity[rarity_name] = chance_of_new_pokemon_in_rarity * slot_row_probability
+
+        return chance_new_pokemon_by_rarity
 
     def autorelease(self) -> int:
         num_released = 0
