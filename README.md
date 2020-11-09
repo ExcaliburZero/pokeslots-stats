@@ -1,5 +1,25 @@
-## Pokeslots Stats ![pokeslots-stats](https://github.com/ExcaliburZero/pokeslots-stats/workflows/pokeslots-stats/badge.svg)
+# Pokeslots Stats ![pokeslots-stats](https://github.com/ExcaliburZero/pokeslots-stats/workflows/pokeslots-stats/badge.svg)
 This is a script that calculates some statistical information about the [Pokeslots](https://mudae.fandom.com/wiki/Pokéslot) feature of the Discord bot Mudae.
+
+## Contents
+<!-- TOC -->
+
+- [Contents](#contents)
+- [Usage](#usage)
+    - [pokemon_info](#pokemon_info)
+    - [simulate](#simulate)
+    - [estimate_stats](#estimate_stats)
+- [Development notes](#development-notes)
+    - [Create environment](#create-environment)
+    - [Update environment](#update-environment)
+    - [Testing](#testing)
+- [Implementation notes](#implementation-notes)
+    - [Statistical assumptions](#statistical-assumptions)
+        - [Within-rarity pokemon probabilities](#within-rarity-pokemon-probabilities)
+    - [Statistical calculations](#statistical-calculations)
+        - [Probability of getting new pokemon](#probability-of-getting-new-pokemon)
+
+<!-- /TOC -->
 
 ## Usage
 ### pokemon_info
