@@ -95,3 +95,27 @@ make test
 The `simulate` command currently assumes that for a given pokemon rarity level (ex. common, uncommon, etc.) all pokemon in that rarity level are equally likely to be won. This assumption simplifies some of the code and statistical calculations.
 
 I did an analysis on some data from the Mudae Discord channel pokeroulette channel and it looks like this assumption does not fully hold, there were some cases of some pokemon within the same rarity that were won a bit more frequently than others (ex. Caterpie in common). However, I think that the probabilities do not vary enough to effect the end results of the simulation much.
+
+### Statistical calculations
+#### Probability of getting new pokemon
+For the `chance_new_pokemon_by_rarity` and `chance_any_new_pokemon` plots, it calculates the probabilities shown in the plots using the following calculations.
+
+For a given rarity (ex. common) we can calculate the probability of obtaining a new pokemon of that rarity on a single roll `P(rarity_win and new_pkmn_in_rarity)` by using:
+
+* Probability of winning a pokemon of that rarity `P(rarity_win)`, estimated using `estimate_stats`
+* Probability of the pokemon you win in that rarity being a pokemon that you do not already have `P(new_pkmn_in_rarity)`
+
+```
+P(rarity_win and new_pkmn_in_rarity)
+    = P(rarity_win) * P(new_pkmn_in_rarity | rarity_win)
+    = P(rarity_win) * (num_new_pkmn_in_rarity / total_num_pkmn_in_rarity)
+```
+
+With these probabilities for each of the different rarity levels we can then use them to calculate the probability of obtaining at least one new pokemon in any of the rarity slots on a single roll `P(any_new_pkmn)`.
+
+```
+P(any_new_pkmn)
+    = 1 - P(no_new_pokemon)
+    = 1 - [P(not_new_common) * P(not_new_uncommon) * ... * P(not_new_ultra_beast)]
+    = 1 - [(1 - P(new_common)) * (1 - P(new_uncommon)) * ... * (1 - P(new_ultra_beast))]
+```
